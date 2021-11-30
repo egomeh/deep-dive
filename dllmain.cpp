@@ -4,9 +4,104 @@
 #include <TlHelp32.h>
 #include <vector>
 
+
 HMODULE self;
 
 HANDLE gWaitForThisBastardBeforeLeaving;
+
+#define MONO_JIT_INFO_TABLE_CHUNK_SIZE 64
+#define MONO_ZERO_LEN_ARRAY 1
+#define HAZARD_POINTER_COUNT 3
+
+struct MonoJitInfo;
+struct MonoJitInfoTableChunk;
+struct MonoDomain;
+
+// Mono
+struct _MonoJitInfoTableChunk
+{
+	int		       refcount;
+	volatile int           num_elements;
+	volatile void* last_code_end;
+	/* MonoJitInfo* */void* next_tombstone;
+	MonoJitInfo* volatile data[MONO_JIT_INFO_TABLE_CHUNK_SIZE];
+};
+
+struct MonoJitInfoTable
+{
+	MonoDomain* domain;
+	int			num_chunks;
+	int			num_valid;
+	MonoJitInfoTableChunk* chunks[MONO_ZERO_LEN_ARRAY];
+};
+
+typedef bool gboolean;
+typedef uint32_t guint32;
+struct MonoMethod;
+struct MonoImage;
+struct MonoAotModule;
+struct MonoTrampInfo;
+typedef void* gpointer;
+typedef int MonoJitExceptionInfo;
+
+typedef struct {
+	gpointer hazard_pointers[HAZARD_POINTER_COUNT];
+} MonoThreadHazardPointers;
+
+
+struct MonoJitInfo {
+	/* NOTE: These first two elements (method and
+	   next_jit_code_hash) must be in the same order and at the
+	   same offset as in RuntimeMethod, because of the jit_code_hash
+	   internal hash table in MonoDomain. */
+	union {
+		MonoMethod* method;
+		MonoImage* image;
+		MonoAotModule* aot_info;
+		MonoTrampInfo* tramp_info;
+	} d;
+	union {
+		MonoJitInfo* next_jit_code_hash;
+		MonoJitInfo* next_tombstone;
+	} n;
+	void*    code_start;
+	guint32     unwind_info;
+	int         code_size;
+	guint32     num_clauses : 15;
+	/* Whenever the code is domain neutral or 'shared' */
+	gboolean    domain_neutral : 1;
+	gboolean    has_generic_jit_info : 1;
+	gboolean    has_try_block_holes : 1;
+	gboolean    has_arch_eh_info : 1;
+	gboolean    has_thunk_info : 1;
+	gboolean    has_unwind_info : 1;
+	gboolean    from_aot : 1;
+	gboolean    from_llvm : 1;
+	gboolean    dbg_attrs_inited : 1;
+	gboolean    dbg_hidden : 1;
+	/* Whenever this jit info was loaded in async context */
+	gboolean    async : 1;
+	gboolean    dbg_step_through : 1;
+	gboolean    dbg_non_user_code : 1;
+	/*
+	 * Whenever this jit info refers to a trampoline.
+	 * d.tramp_info contains additional data in this case.
+	 */
+	gboolean    is_trampoline : 1;
+	/* Whenever this jit info refers to an interpreter method */
+	gboolean    is_interp : 1;
+
+	/* FIXME: Embed this after the structure later*/
+	gpointer    gc_info; /* Currently only used by SGen */
+
+	gpointer    seq_points;
+
+	MonoJitExceptionInfo clauses[MONO_ZERO_LEN_ARRAY];
+	/* There is an optional MonoGenericJitInfo after the clauses */
+	/* There is an optional MonoTryBlockHoleTableJitInfo after MonoGenericJitInfo clauses*/
+	/* There is an optional MonoArchEHJitInfo after MonoTryBlockHoleTableJitInfo */
+	/* There is an optional MonoThunkJitInfo after MonoArchEHJitInfo */
+};
 
 //
 // sanity
@@ -22,8 +117,6 @@ VOID(*mono_security_set_mode)(DWORD mode);
 // Function to iterate over domains, though what the heck is a domain...?
 void(*mono_domain_foreach)(void* func, void* user_data);
 char*(*mono_pmip)(void* address);
-
-VOID(*mono_jit_info_table_foreach_internal)(void*, void*, void*);
 
 //PVOID(*mono_domain_get)();
 //PVOID(*mono_domain_assembly_open)(PVOID domain, PCHAR file);
@@ -50,6 +143,10 @@ std::vector<MemoryRegion> ExecutableRegions;
 void ForeachDomain(void* MonoDomain, void* user_data)
 {
 	MonoDomains.push_back(MonoDomain);
+
+	MonoJitInfoTable* table;
+	MonoJitInfo* ji;
+	MonoThreadHazardPointers* hp = mono_hazard_pointer_get();
 }
 
 char* methodName;
@@ -66,10 +163,8 @@ __declspec(naked) int MonoInject() {
 	// goodbye security
 	//mono_security_set_mode(NULL);
 
-	//mono_domain_foreach(&ForeachDomain, NULL);
+	mono_domain_foreach(&ForeachDomain, NULL);
 	
-	methodName = mono_pmip((void*)0x28107178);
-
 	SetEvent(gWaitForThisBastardBeforeLeaving);
 
 	__asm {
@@ -116,8 +211,6 @@ void Entry()
 	mono_domain_foreach = (void(__cdecl*)(void* func, void* user_data))GetProcAddress(hMono, "mono_domain_foreach");
 	mono_pmip = (char*(__cdecl*)(void* address))GetProcAddress(hMono, "mono_pmip");
 
-
-	mono_jit_info_table_foreach_internal = (void(__cdecl*)(void*, void*, void*))GetProcAddress(hMono, "mono_jit_info_table_foreach_internal");
 	//MONO_PROC(mono_domain_get);
 	//MONO_PROC(mono_domain_assembly_open);
 	//MONO_PROC(mono_assembly_get_image);
