@@ -42,8 +42,8 @@ void Entry()
         return;
     }
 
-	mono_get_root_domain = (void* (__cdecl*)(void))GetProcAddress(hMono, "mono_get_root_domain");
-	mono_thread_attach = (void* (__cdecl*)(void*))GetProcAddress(hMono, "mono_thread_attach");
+    mono_get_root_domain = (void* (__cdecl*)(void))GetProcAddress(hMono, "mono_get_root_domain");
+    mono_thread_attach = (void* (__cdecl*)(void*))GetProcAddress(hMono, "mono_thread_attach");
     mono_assembly_foreach = (void(__cdecl*)(GFunc, void*))GetProcAddress(hMono, "mono_assembly_foreach");
     mono_assembly_get_name = (void*(__cdecl*)(void*))GetProcAddress(hMono, "mono_assembly_get_name");
     mono_stringify_assembly_name = (char* (__cdecl*)(void*))GetProcAddress(hMono, "mono_stringify_assembly_name");
