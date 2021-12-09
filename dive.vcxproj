@@ -87,8 +87,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
-	<ClInclude Include="utilities.h" />
+    <ClInclude Include="utilities.h" />
     <ClInclude Include="mono_interaction.h" />
     <ClCompile Include="mono_interaction.cpp" />
     <ClCompile Include="dllmain.cpp" />
