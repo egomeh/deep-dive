@@ -7,7 +7,6 @@
 
 bool InitMonoInteraction();
 void* FindMonoImage(const char* name);
-
 void* FindClassFromImage(void* image, const char* name);
-
-void* FindMethodInClass(void* c, const char* name);
+void* FindMethodInClass(void* mono_class, const char* name);
+void* FindCodeAddress(void* mono_class, const char* name);

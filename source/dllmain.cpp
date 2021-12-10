@@ -27,9 +27,14 @@ void Entry()
     if (!helm_manager)
         return;
 
-    void* helm_manager_set_fixed_depth = FindMethodInClass(helm_manager, "SetFixedDepth");
+    void* helm_manager_set_fixed_depth = FindCodeAddress(helm_manager, "SetFixedDepth");
 
     if (!helm_manager_set_fixed_depth)
+        return;
+
+    void* helm_manager_fixed_update = FindCodeAddress(helm_manager, "FixedUpdate");
+
+    if (!helm_manager_fixed_update)
         return;
 
     return;
