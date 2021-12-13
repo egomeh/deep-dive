@@ -32,5 +32,6 @@ public:
 
 #define DIVE_UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
-
 #define ON_EXIT RunOnExit DIVE_UNIQUE_NAME(roe); DIVE_UNIQUE_NAME(roe).m_function = [&] ()
+
+#define FOUR_BYTES(value) (unsigned char)(value >>  0), (unsigned char)(value >> 8), (unsigned char)(value >> 16), (unsigned char)(value >> 24)

@@ -7,9 +7,19 @@
 
 HMODULE self;
 
+uint32_t return_address;
+
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
-    self = self;
+    __asm
+    {
+        // Do the original work from the hook point
+        mov dword ptr[ebp - 0x80], 0
+        push return_address
+    };
+
+    // TIL: naked functions don't have a ret instruction
+    __asm ret;
 }
 
 void Entry()
@@ -43,18 +53,16 @@ void Entry()
         return;
 
     void* fixed_update_hook_point = (void*)((size_t)helm_manager_fixed_update + 0x43);
+    return_address = (uint32_t)fixed_update_hook_point + 7;
 
     DWORD old_protection;
-    VirtualProtect(fixed_update_hook_point, 4096, PAGE_EXECUTE_READWRITE, &old_protection);
+    VirtualProtect(fixed_update_hook_point, 0x1000, PAGE_EXECUTE_READWRITE, &old_protection);
 
     uint32_t target_address = (uint32_t)&helm_manager_fixed_update_hook;
     unsigned char fixed_update_hook[] =
     {
         0x68,                                       // push 4-byte imm
-        (unsigned char)(target_address >>  0),      // target
-        (unsigned char)(target_address >>  8),      // target
-        (unsigned char)(target_address >> 16),      // target
-        (unsigned char)(target_address >> 24),      // target
+        FOUR_BYTES(target_address),                 // target address
         0xc3,                                       // ret
         0x90,                                       // nop
     };
@@ -62,7 +70,7 @@ void Entry()
     memcpy(fixed_update_hook_point, fixed_update_hook, sizeof(fixed_update_hook));
 
     DWORD dummy_protection;
-    VirtualProtect(fixed_update_hook_point, 4096, old_protection, &dummy_protection);
+    VirtualProtect(fixed_update_hook_point, 0x1000, old_protection, &dummy_protection);
 
     while (true)
         Sleep(500);
