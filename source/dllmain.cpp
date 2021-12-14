@@ -6,8 +6,12 @@
 #include "utilities.h"
 
 HMODULE self;
+HANDLE done_gone_exit_evnet;
 
 uint32_t return_address;
+uint32_t helm_manager;
+
+uint32_t set_fixed_depth_address;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
@@ -15,11 +19,28 @@ __declspec(naked) void helm_manager_fixed_update_hook()
     {
         // Do the original work from the hook point
         mov dword ptr[ebp - 0x80], 0
-        push return_address
+
+        // Get the helm manager address
+        lea eax, helm_manager
+        mov ecx, [ebp + 0x8]
+        mov [eax], ecx
+
+        // prepare fixed depth call
+        push 0x44000000
+        mov eax, helm_manager
+        push eax
+        call set_fixed_depth_address
+        add esp, 0x8
     };
 
-    // TIL: naked functions don't have a ret instruction
-    __asm ret;
+    SetEvent(done_gone_exit_evnet);
+
+    // TIL: naked functions don't have a ret instructio n
+    __asm
+    {
+        push return_address
+        ret
+    };
 }
 
 void Entry()
@@ -47,10 +68,14 @@ void Entry()
     if (!helm_manager_set_fixed_depth)
         return;
 
+    set_fixed_depth_address = (uint32_t)helm_manager_set_fixed_depth;
+
     void* helm_manager_fixed_update = FindCodeAddress(helm_manager, "FixedUpdate");
 
     if (!helm_manager_fixed_update)
         return;
+
+    done_gone_exit_evnet = CreateEventA(NULL, FALSE, FALSE, "DoneGoneExitEvent");
 
     void* fixed_update_hook_point = (void*)((size_t)helm_manager_fixed_update + 0x43);
     return_address = (uint32_t)fixed_update_hook_point + 7;
@@ -67,13 +92,19 @@ void Entry()
         0x90,                                       // nop
     };
 
+
+    unsigned char old_data[sizeof(fixed_update_hook)];
+    memcpy(old_data, fixed_update_hook_point, sizeof(fixed_update_hook));
     memcpy(fixed_update_hook_point, fixed_update_hook, sizeof(fixed_update_hook));
+
+    WaitForSingleObject(done_gone_exit_evnet, -1);
+
+    memcpy(fixed_update_hook_point, old_data, sizeof(fixed_update_hook));
+
+    Sleep(500);
 
     DWORD dummy_protection;
     VirtualProtect(fixed_update_hook_point, 0x1000, old_protection, &dummy_protection);
-
-    while (true)
-        Sleep(500);
 
     return;
 }
