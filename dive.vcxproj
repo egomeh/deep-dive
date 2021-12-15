@@ -87,10 +87,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+	<ClCompile Include="source/dllmain.cpp" />
     <ClInclude Include="source/utilities.h" />
     <ClInclude Include="source/mono_interaction.h" />
     <ClCompile Include="source/mono_interaction.cpp" />
-    <ClCompile Include="source/dllmain.cpp" />
+	<ClInclude Include="source/memory.h" />
+    <ClCompile Include="source/memory.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
