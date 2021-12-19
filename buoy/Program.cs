@@ -4,8 +4,11 @@ class Buoy
 {
     public static int Main()
     {
-        Injection.InjectDLL("ColdWaters.exe", "something.dll");
+        string sonarDLLPath = Path.GetFullPath(@"../../../../Debug/sonar.dll");
+
+        Injection.InjectDLL("ColdWaters", sonarDLLPath);
 
         return 0;
     }
 }
+
