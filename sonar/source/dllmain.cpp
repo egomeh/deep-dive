@@ -15,7 +15,7 @@ uint32_t helm_manager;
 uint32_t set_fixed_depth_address;
 
 bool make_set_fixed_depth_call = true;
-float set_fiex_depth_parameter = 400.f;
+float set_fixed_depth_parameter = 400.f;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
@@ -31,7 +31,7 @@ __declspec(naked) void helm_manager_fixed_update_hook()
     {
         lea eax, helm_manager
         mov ecx, [ebp + 0x8]
-        mov[eax], ecx
+        mov [eax], ecx
     }
 
     if (make_set_fixed_depth_call)
@@ -42,7 +42,7 @@ __declspec(naked) void helm_manager_fixed_update_hook()
             // prepare fixed depth call
 
             // push depth parameter
-            lea eax, set_fiex_depth_parameter
+            lea eax, set_fixed_depth_parameter
             push [eax]
 
             // push helm manager
