@@ -104,6 +104,9 @@ void Entry()
 
     done_gone_exit_evnet = CreateEventA(NULL, FALSE, FALSE, "DoneGoneExitEvent");
 
+    if (!done_gone_exit_evnet)
+        return;
+
     void* fixed_update_hook_point = (void*)((size_t)helm_manager_fixed_update + 0x43);
     return_address = (uint32_t)fixed_update_hook_point + 7;
     uint32_t target_address = (uint32_t)&helm_manager_fixed_update_hook;
