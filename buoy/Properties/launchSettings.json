@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "buoy": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    }
+  }
+}
