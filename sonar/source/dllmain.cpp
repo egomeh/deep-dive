@@ -14,7 +14,7 @@ uint32_t helm_manager;
 
 uint32_t set_fixed_depth_address;
 
-bool make_set_fixed_depth_call = true;
+bool make_set_fixed_depth_call = false;
 float set_fixed_depth_parameter = 400.f;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
@@ -56,9 +56,6 @@ __declspec(naked) void helm_manager_fixed_update_hook()
 
         make_set_fixed_depth_call = false;
     }
-
-    // For now, we just dart after calling this once
-    SetEvent(done_gone_exit_evnet);
 
     // TIL: naked functions don't have a ret instructio n
     __asm
@@ -122,7 +119,33 @@ void Entry()
     );
     helm_manager_fixed_update_replacement.Emplace(fixed_update_hook_point);
 
-    WaitForSingleObject(done_gone_exit_evnet, -1);
+    HANDLE hPipe;
+
+    hPipe = CreateFile(TEXT("\\\\.\\pipe\\ColdPipe"),
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+
+    char buffer[512];
+    while (hPipe != INVALID_HANDLE_VALUE)
+    {
+        DWORD bytesRead;
+        BOOL result = ReadFile(hPipe, buffer, (DWORD)sizeof(buffer), &bytesRead, NULL);
+
+        if (bytesRead == 0)
+            continue;
+
+        int depth = atoi(buffer);
+        set_fixed_depth_parameter = (float)depth;
+        make_set_fixed_depth_call = true;
+    }
+
+    CloseHandle(hPipe);
+
+    Sleep(1000);
 
     return;
 }

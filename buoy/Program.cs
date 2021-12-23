@@ -1,4 +1,5 @@
 ﻿using System.Speech.Recognition;
+using System.IO.Pipes;
 
 class Buoy
 {
@@ -14,7 +15,13 @@ class Buoy
     {
         string sonarDLLPath = Path.GetFullPath(@"../../../../Debug/sonar.dll");
 
-        // Injection.InjectDLL("ColdWaters", sonarDLLPath);
+        var server = new NamedPipeServerStream("ColdPipe");
+
+        Injection.InjectDLL("ColdWaters", sonarDLLPath);
+
+        server.WaitForConnection();
+        StreamReader reader = new StreamReader(server);
+        StreamWriter writer = new StreamWriter(server);
 
         Voice voice = new Voice();
         voice.StartListeningForCommands();
@@ -27,6 +34,16 @@ class Buoy
 
             if (!string.IsNullOrEmpty(command))
                 Console.WriteLine(String.Format("Voice command: {0}", command));
+            else
+                continue;
+
+            if (command.StartsWith("make depth "))
+            {   
+                command = command.Remove(0, 11);
+                command = command.Remove(command.Length - 5, 5);
+                writer.WriteLine(command);
+                writer.Flush();
+            }
         }
 
         return 0;
