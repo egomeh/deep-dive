@@ -53,6 +53,8 @@ class Voice
 
         commands.Add(new GrammarBuilder("launch decoy"));
 
+        commands.Add(new GrammarBuilder("exit"));
+
         Choices allChoices = new Choices(commands.ToArray());
         GrammarBuilder finalCommand = new GrammarBuilder(allChoices);
         Grammar grammar = new Grammar(finalCommand);

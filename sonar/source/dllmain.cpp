@@ -1,10 +1,18 @@
 #pragma once
+
+#define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
 #include <TlHelp32.h>
+#include <shlobj.h>
 #include <vector>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 #include "mono_interaction.h"
 #include "utilities.h"
 #include "memory.h"
+#include "comms.h"
 
 HMODULE self;
 HANDLE done_gone_exit_evnet;
@@ -15,7 +23,7 @@ uint32_t helm_manager;
 uint32_t set_fixed_depth_address;
 
 bool make_set_fixed_depth_call = false;
-float set_fixed_depth_parameter = 400.f;
+float set_fixed_depth_parameter = 0.f;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
@@ -119,33 +127,19 @@ void Entry()
     );
     helm_manager_fixed_update_replacement.Emplace(fixed_update_hook_point);
 
-    HANDLE hPipe;
+    constexpr int bufferSize = 5000;
+    constexpr const char* defaultPort = "30010";
 
-    hPipe = CreateFile(TEXT("\\\\.\\pipe\\ColdPipe"),
-        GENERIC_READ | GENERIC_WRITE,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        0,
-        NULL);
+    SOCKET ConnectSocket = INVALID_SOCKET;
+    struct addrinfo* result = NULL;
+    struct addrinfo* ptr = NULL;
+    struct addrinfo hints;
+    const char* sendbuf = "This is a message from inside Anno 1800";
+    int iResult;
+    int recvbuflen = bufferSize;
 
-    char buffer[512];
-    while (hPipe != INVALID_HANDLE_VALUE)
-    {
-        DWORD bytesRead;
-        BOOL result = ReadFile(hPipe, buffer, (DWORD)sizeof(buffer), &bytesRead, NULL);
-
-        if (bytesRead == 0)
-            continue;
-
-        int depth = atoi(buffer);
-        set_fixed_depth_parameter = (float)depth;
-        make_set_fixed_depth_call = true;
-    }
-
-    CloseHandle(hPipe);
-
-    Sleep(1000);
+    if (!WinsockInitialized() && InitWSA())
+        return;
 
     return;
 }

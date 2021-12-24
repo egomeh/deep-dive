@@ -87,6 +87,8 @@
     <ClCompile Include="source/mono_interaction.cpp" />
     <ClInclude Include="source/memory.h" />
     <ClCompile Include="source/memory.cpp" />
+    <ClInclude Include="source/comms.h" />
+    <ClCompile Include="source/comms.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
     <ImportGroup Label="ExtensionTargets">
