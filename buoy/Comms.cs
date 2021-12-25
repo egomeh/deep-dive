@@ -3,9 +3,10 @@ using System.Net.Sockets;
 
 class Comms
 {
-    int port = 1234;
+    int port = 30010;
     Socket? listenerSocket = null;
     Socket? sessionSocket = null;
+    Task<Socket>? acceptTask = null;
 
     public  Comms()
     {
@@ -13,8 +14,7 @@ class Comms
 
     public bool Initialize()
     {
-        IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-        IPAddress ipAddress = ipHostInfo.AddressList[0];
+        IPAddress ipAddress = IPAddress.Any;
         IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
 
         // Create a TCP/IP socket.  
@@ -30,7 +30,22 @@ class Comms
         if (listenerSocket == null)
             return false;
 
-        sessionSocket = listenerSocket.Accept();
+        acceptTask = listenerSocket.AcceptAsync();
+
+        return true;
+    }
+
+    public bool WaitForConnection(int millisecondTimeout)
+    {
+        if (acceptTask == null)
+            return false;
+
+        acceptTask.Wait(millisecondTimeout);
+
+        if (!acceptTask.IsCompletedSuccessfully)
+            return false;
+
+        sessionSocket = acceptTask.Result;
 
         return true;
     }

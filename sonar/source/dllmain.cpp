@@ -82,6 +82,9 @@ void Entry()
         FreeLibraryAndExitThread(self, 0);
     };
 
+    if (!connect_to_buoy())
+        return;
+
     if (!InitMonoInteraction())
         return;
 
@@ -127,19 +130,22 @@ void Entry()
     );
     helm_manager_fixed_update_replacement.Emplace(fixed_update_hook_point);
 
-    constexpr int bufferSize = 5000;
-    constexpr const char* defaultPort = "30010";
+    std::vector<uint8_t> data_from_buoy;
+    while (read_from_buoy(data_from_buoy))
+    {
+        if (data_from_buoy.size() == 0)
+            break;
 
-    SOCKET ConnectSocket = INVALID_SOCKET;
-    struct addrinfo* result = NULL;
-    struct addrinfo* ptr = NULL;
-    struct addrinfo hints;
-    const char* sendbuf = "This is a message from inside Anno 1800";
-    int iResult;
-    int recvbuflen = bufferSize;
+        int command_type = *((int*)data_from_buoy.data());
+        data_from_buoy.erase(data_from_buoy.begin(), data_from_buoy.begin() + 4);
 
-    if (!WinsockInitialized() && InitWSA())
-        return;
+        if (command_type == 2)
+        {
+            float depth = (float)*((int*)data_from_buoy.data());
+            set_fixed_depth_parameter = depth;
+            make_set_fixed_depth_call = true;
+        }
+    }
 
     return;
 }
