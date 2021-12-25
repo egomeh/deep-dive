@@ -4,6 +4,7 @@ enum CommandType
     Invalid = 0,
     Exit = 1,
     MakeDepth = 2,
+    Speed = 3,
 }
 
 struct Command
@@ -90,6 +91,51 @@ class CommandParser
         return true;
     }
 
+    public static bool ParseSpeedCommand(string commandText, out int speedSetting)
+    {
+        speedSetting = 0;
+        bool matchedAnySpeed = false;
+
+        if (Match("dead slow ", commandText, out commandText))
+        {
+            matchedAnySpeed = true;
+            speedSetting = 2;
+        }
+
+        if (Match("slow ", commandText, out commandText))
+        {
+            matchedAnySpeed = true;
+            speedSetting = 3;
+        }
+
+        if (Match("half ", commandText, out commandText))
+        {
+            matchedAnySpeed = true;
+            speedSetting = 4;
+        }
+
+        if (Match("full ", commandText, out commandText))
+        {
+            matchedAnySpeed = true;
+            speedSetting = 5;
+        }
+
+        if (Match("flank ", commandText, out commandText))
+        {
+            matchedAnySpeed = true;
+            speedSetting = 6;
+        }
+
+        if (!matchedAnySpeed)
+            return false;
+
+
+        if (!Match("ahead", commandText, out commandText))
+            return false;
+
+        return true;
+    }
+
     public static Command ParseCommand(string text)
     {
         if (ParseExitCommand(text))
@@ -108,6 +154,16 @@ class CommandParser
             {
                 type = CommandType.MakeDepth,
                 rawData = BitConverter.GetBytes(depth),
+            };
+        }
+
+        int speedSetting;
+        if (ParseSpeedCommand(text, out speedSetting))
+        {
+            return new Command()
+            {
+                type = CommandType.Speed,
+                rawData = BitConverter.GetBytes(speedSetting),
             };
         }
 

@@ -21,9 +21,12 @@ uint32_t return_address;
 uint32_t helm_manager;
 
 uint32_t set_fixed_depth_address;
-
 bool make_set_fixed_depth_call = false;
 float set_fixed_depth_parameter = 0.f;
+
+uint32_t set_direct_telegraph_address;
+bool make_set_direct_telegraph_call = false;
+int set_direct_telegraph_parameter = 0;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
@@ -63,6 +66,29 @@ __declspec(naked) void helm_manager_fixed_update_hook()
         };
 
         make_set_fixed_depth_call = false;
+    }
+
+    if (make_set_direct_telegraph_call)
+    {
+        // Make the call to SetDirectTelegraph
+        __asm
+        {
+            // prepare fixed depth call
+
+            // push depth parameter
+            lea eax, set_direct_telegraph_parameter
+            push[eax]
+
+            // push helm manager
+            mov eax, helm_manager
+            push eax
+
+            // call
+            call set_direct_telegraph_address
+            add esp, 0x8
+        };
+
+        make_set_direct_telegraph_call = false;
     }
 
     // TIL: naked functions don't have a ret instructio n
@@ -105,6 +131,13 @@ void Entry()
 
     set_fixed_depth_address = (uint32_t)helm_manager_set_fixed_depth;
 
+    void* helm_manager_set_direct_telegraph = FindCodeAddress(helm_manager, "SetDirectTelegraph");
+
+    if (!helm_manager_set_direct_telegraph)
+        return;
+
+    set_direct_telegraph_address = (uint32_t)helm_manager_set_direct_telegraph;
+
     void* helm_manager_fixed_update = FindCodeAddress(helm_manager, "FixedUpdate");
 
     if (!helm_manager_fixed_update)
@@ -139,11 +172,18 @@ void Entry()
         int command_type = *((int*)data_from_buoy.data());
         data_from_buoy.erase(data_from_buoy.begin(), data_from_buoy.begin() + 4);
 
-        if (command_type == 2)
+        if (command_type == 2) // make depth [number] feet
         {
             float depth = (float)*((int*)data_from_buoy.data());
             set_fixed_depth_parameter = depth;
             make_set_fixed_depth_call = true;
+        }
+
+        if (command_type == 3) // [setting] ahead / speed command
+        {
+            int speed = *(int*)data_from_buoy.data();
+            set_direct_telegraph_parameter = speed;
+            make_set_direct_telegraph_call = true;
         }
     }
 

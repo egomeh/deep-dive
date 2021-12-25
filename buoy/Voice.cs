@@ -35,10 +35,10 @@ class Voice
         commands.Add(depthCommandGrammarBuilder);
 
         // set speed
-        Choices speedOptions = new Choices(new String[] { "slow", "half", "full", "flank" });
+        Choices speedOptions = new Choices(new String[] { "dead slow", "slow", "half", "full", "flank" });
         GrammarBuilder speedCommandBuilder = new GrammarBuilder();
         speedCommandBuilder.Append(speedOptions);
-        speedCommandBuilder.Append("speed");
+        speedCommandBuilder.Append("ahead");
         commands.Add(speedCommandBuilder);
 
         // full rudder
