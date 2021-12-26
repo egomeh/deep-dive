@@ -49,6 +49,12 @@ class Voice
         fullRudderBuilder.Append("rudder");
         commands.Add(fullRudderBuilder);
 
+        GrammarBuilder rudderTurnBuilder = new GrammarBuilder();
+        rudderTurnBuilder.Append("turn");
+        rudderTurnBuilder.Append(directionOption);
+        rudderTurnBuilder.Append(zeroToThousand);
+        commands.Add(rudderTurnBuilder);
+
         commands.Add(new GrammarBuilder("neutral rudder"));
 
         commands.Add(new GrammarBuilder("launch decoy"));

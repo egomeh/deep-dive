@@ -5,6 +5,7 @@ enum CommandType
     Exit = 1,
     MakeDepth = 2,
     Speed = 3,
+    Rudder = 4,
 }
 
 struct Command
@@ -51,7 +52,7 @@ class CommandParser
         number = 0;
         int howManyDigits = 0;
 
-        while (Char.IsDigit(text[howManyDigits]))
+        while (howManyDigits < text.Length && Char.IsDigit(text[howManyDigits]))
             howManyDigits++;
 
         if (howManyDigits > 0)
@@ -136,6 +137,50 @@ class CommandParser
         return true;
     }
 
+    public static bool ParseRudderCommand(string text, out int angle)
+    {
+        angle = 0;
+
+        if (Match("full left rudder", text, out text))
+        {
+            angle = -30;
+            return true;
+        }
+
+        if (Match("full right rudder", text, out text))
+        {
+            angle = 30;
+            return true;
+        }
+
+        if (Match("turn ", text, out text))
+        {
+            bool left = false;
+
+            if (Match("left", text, out text))
+                left = true;
+            else if (Match("right", text, out text))
+                left = false;
+            else
+                return false;
+
+            Whitespace(text, out text);
+
+            int turnRate = 0;
+            if (!Number(text, out turnRate, out text))
+                return false;
+
+            if (left)
+                turnRate = -turnRate;
+
+            angle = turnRate;
+
+            return true;
+        }
+
+        return false;
+    }
+
     public static Command ParseCommand(string text)
     {
         if (ParseExitCommand(text))
@@ -164,6 +209,16 @@ class CommandParser
             {
                 type = CommandType.Speed,
                 rawData = BitConverter.GetBytes(speedSetting),
+            };
+        }
+
+        int rudderAngle;
+        if (ParseRudderCommand(text, out rudderAngle))
+        {
+            return new Command()
+            {
+                type = CommandType.Rudder,
+                rawData = BitConverter.GetBytes(rudderAngle),
             };
         }
 

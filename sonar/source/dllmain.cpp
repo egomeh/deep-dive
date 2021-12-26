@@ -18,7 +18,7 @@ HMODULE self;
 HANDLE done_gone_exit_evnet;
 
 uint32_t return_address;
-uint32_t helm_manager;
+uint32_t helm_manager = 0;
 
 uint32_t set_fixed_depth_address;
 bool make_set_fixed_depth_call = false;
@@ -91,7 +91,7 @@ __declspec(naked) void helm_manager_fixed_update_hook()
         make_set_direct_telegraph_call = false;
     }
 
-    // TIL: naked functions don't have a ret instructio n
+    // TIL: naked functions don't have a ret instruction
     __asm
     {
         popad
@@ -119,26 +119,26 @@ void Entry()
     if (!image)
         return;
 
-    void* helm_manager = FindClassFromImage(image, "HelmManager");
+    void* helm_manager_class = FindClassFromImage(image, "HelmManager");
 
-    if (!helm_manager)
+    if (!helm_manager_class)
         return;
 
-    void* helm_manager_set_fixed_depth = FindCodeAddress(helm_manager, "SetFixedDepth");
+    void* helm_manager_set_fixed_depth = FindCodeAddress(helm_manager_class, "SetFixedDepth");
 
     if (!helm_manager_set_fixed_depth)
         return;
 
     set_fixed_depth_address = (uint32_t)helm_manager_set_fixed_depth;
 
-    void* helm_manager_set_direct_telegraph = FindCodeAddress(helm_manager, "SetDirectTelegraph");
+    void* helm_manager_set_direct_telegraph = FindCodeAddress(helm_manager_class, "SetDirectTelegraph");
 
     if (!helm_manager_set_direct_telegraph)
         return;
 
     set_direct_telegraph_address = (uint32_t)helm_manager_set_direct_telegraph;
 
-    void* helm_manager_fixed_update = FindCodeAddress(helm_manager, "FixedUpdate");
+    void* helm_manager_fixed_update = FindCodeAddress(helm_manager_class, "FixedUpdate");
 
     if (!helm_manager_fixed_update)
         return;
@@ -185,6 +185,34 @@ void Entry()
             set_direct_telegraph_parameter = speed;
             make_set_direct_telegraph_call = true;
         }
+
+        if (command_type == 4) // Rudder
+        {
+            int angle = *(int*)data_from_buoy.data();
+            if (helm_manager == 0)
+                continue;
+
+            if (angle < -30)
+                angle = -30;
+
+            if (angle > 30)
+                angle = 30;
+
+            float value_to_write_to_memory = (float)angle;
+            value_to_write_to_memory = value_to_write_to_memory * .05f;
+            __asm
+            {
+                mov eax, helm_manager
+                mov eax, [eax + 0x0C]
+                mov eax, [eax + 0x24]
+                mov eax, [eax + 0x14]
+                add eax, 0x80
+                lea ecx, value_to_write_to_memory
+                mov ecx, [ecx]
+                mov [eax], ecx
+            }
+        }
+
     }
 
     return;
