@@ -199,7 +199,7 @@ void Entry()
                 angle = 30;
 
             float value_to_write_to_memory = (float)angle;
-            value_to_write_to_memory = value_to_write_to_memory * .05f;
+            value_to_write_to_memory = value_to_write_to_memory * .1f;
             __asm
             {
                 mov eax, helm_manager
