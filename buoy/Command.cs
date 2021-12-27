@@ -6,6 +6,7 @@ enum CommandType
     MakeDepth = 2,
     Speed = 3,
     Rudder = 4,
+    DivePlanes = 5,
 }
 
 struct Command
@@ -181,6 +182,38 @@ class CommandParser
         return false;
     }
 
+    public static bool ParseDivePlaneCommand(string text, out int angle)
+    {
+        if (!Number(text, out angle, out text))
+            return false;
+
+        if (angle > 30)
+            angle = 30;
+
+        Whitespace(text, out text);
+
+        if (!Match("degrees ", text, out text))
+            return false;
+
+        if (Match("up ", text, out text))
+        {
+            angle = -angle;
+        }
+        else if (Match("down ", text, out text))
+        {
+            // Nothing, just to make sure we catch "down "
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!Match("angle", text, out text))
+            return false;
+
+        return true;
+    }
+
     public static Command ParseCommand(string text)
     {
         if (ParseExitCommand(text))
@@ -219,6 +252,16 @@ class CommandParser
             {
                 type = CommandType.Rudder,
                 rawData = BitConverter.GetBytes(rudderAngle),
+            };
+        }
+
+        int divePlaneAngle;
+        if (ParseDivePlaneCommand(text, out divePlaneAngle))
+        {
+            return new Command()
+            {
+                type = CommandType.DivePlanes,
+                rawData = BitConverter.GetBytes(divePlaneAngle),
             };
         }
 

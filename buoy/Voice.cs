@@ -55,6 +55,14 @@ class Voice
         rudderTurnBuilder.Append(zeroToThousand);
         commands.Add(rudderTurnBuilder);
 
+        Choices upDownOption = new Choices(new String[] { "up", "down" });
+        GrammarBuilder divePlaneBuilder = new GrammarBuilder();
+        divePlaneBuilder.Append(zeroToThousand);
+        divePlaneBuilder.Append("degrees");
+        divePlaneBuilder.Append(upDownOption);
+        divePlaneBuilder.Append("angle");
+        commands.Add(divePlaneBuilder);
+
         commands.Add(new GrammarBuilder("neutral rudder"));
 
         commands.Add(new GrammarBuilder("launch decoy"));

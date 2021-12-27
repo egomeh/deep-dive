@@ -213,6 +213,33 @@ void Entry()
             }
         }
 
+        if (command_type == 5) // Dive planes
+        {
+            int angle = *(int*)data_from_buoy.data();
+            if (helm_manager == 0)
+                continue;
+
+            if (angle < -30)
+                angle = -30;
+
+            if (angle > 30)
+                angle = 30;
+
+            float value_to_write_to_memory = (float)angle;
+            value_to_write_to_memory = value_to_write_to_memory * .1f;
+            __asm
+            {
+                mov eax, helm_manager
+                mov eax, [eax + 0x0C]
+                mov eax, [eax + 0x24]
+                mov eax, [eax + 0x14]
+                add eax, 0x88
+                lea ecx, value_to_write_to_memory
+                mov ecx, [ecx]
+                mov[eax], ecx
+            }
+        }
+
     }
 
     return;
