@@ -15,7 +15,6 @@
 #include "comms.h"
 
 HMODULE self;
-HANDLE done_gone_exit_evnet;
 
 uint32_t return_address;
 uint32_t helm_manager = 0;
@@ -27,6 +26,9 @@ float set_fixed_depth_parameter = 0.f;
 uint32_t set_direct_telegraph_address;
 bool make_set_direct_telegraph_call = false;
 int set_direct_telegraph_parameter = 0;
+
+uint32_t drop_noise_maker_address;
+bool make_drop_noise_maker_call = false;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
@@ -91,6 +93,19 @@ __declspec(naked) void helm_manager_fixed_update_hook()
         make_set_direct_telegraph_call = false;
     }
 
+    if (make_drop_noise_maker_call)
+    {
+        __asm
+        {
+            mov eax, helm_manager
+            add eax, 0xC            // player functions address
+
+            push eax
+            call drop_noise_maker_address
+            add esp, 0x4
+        }
+    }
+
     // TIL: naked functions don't have a ret instruction
     __asm
     {
@@ -143,11 +158,6 @@ void Entry()
     if (!helm_manager_fixed_update)
         return;
 
-    done_gone_exit_evnet = CreateEventA(NULL, FALSE, FALSE, "DoneGoneExitEvent");
-
-    if (!done_gone_exit_evnet)
-        return;
-
     void* fixed_update_hook_point = (void*)((size_t)helm_manager_fixed_update + 0x43);
     return_address = (uint32_t)fixed_update_hook_point + 7;
     uint32_t target_address = (uint32_t)&helm_manager_fixed_update_hook;
@@ -162,6 +172,15 @@ void Entry()
         }
     );
     helm_manager_fixed_update_replacement.Emplace(fixed_update_hook_point);
+
+    void* player_functions_class = FindClassFromImage(image, "PlayerFunctions");
+
+    void* player_functions_drop_noise_maker = FindCodeAddress(player_functions_class, "DropNoisemaker");
+
+    if (!player_functions_drop_noise_maker)
+        return;
+
+    drop_noise_maker_address = (uint32_t)player_functions_drop_noise_maker;
 
     std::vector<uint8_t> data_from_buoy;
     while (read_from_buoy(data_from_buoy))
@@ -240,6 +259,10 @@ void Entry()
             }
         }
 
+        if (command_type == 6) // Drop noise maker
+        {
+            make_drop_noise_maker_call = true;
+        }
     }
 
     return;

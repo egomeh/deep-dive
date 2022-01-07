@@ -4,17 +4,16 @@ using System.Collections.Concurrent;
 class Voice
 {
     public ConcurrentQueue<string> commandQueue;
+    SpeechRecognitionEngine sr;
 
     public Voice()
     {
         commandQueue = new ConcurrentQueue<String>();
+        sr = new SpeechRecognitionEngine();
     }
 
     public void StartListeningForCommands()
     {
-        SpeechRecognizer sr = new SpeechRecognizer();
-        SpeechRecognitionEngine sre = new SpeechRecognitionEngine();
-
         List<GrammarBuilder> commands = new List<GrammarBuilder>();
 
         List<string> numbers = new List<string>();
@@ -49,12 +48,14 @@ class Voice
         fullRudderBuilder.Append("rudder");
         commands.Add(fullRudderBuilder);
 
+        // turn rudder
         GrammarBuilder rudderTurnBuilder = new GrammarBuilder();
         rudderTurnBuilder.Append("turn");
         rudderTurnBuilder.Append(directionOption);
         rudderTurnBuilder.Append(zeroToThousand);
         commands.Add(rudderTurnBuilder);
 
+        // angle dive planes
         Choices upDownOption = new Choices(new String[] { "up", "down" });
         GrammarBuilder divePlaneBuilder = new GrammarBuilder();
         divePlaneBuilder.Append(zeroToThousand);
@@ -63,11 +64,11 @@ class Voice
         divePlaneBuilder.Append("angle");
         commands.Add(divePlaneBuilder);
 
-        commands.Add(new GrammarBuilder("neutral rudder"));
-
-        commands.Add(new GrammarBuilder("launch decoy"));
-
+        commands.Add(new GrammarBuilder("steady"));
+        commands.Add(new GrammarBuilder("drop noise maker"));
         commands.Add(new GrammarBuilder("exit"));
+        commands.Add(new GrammarBuilder("dive planes zero"));
+        commands.Add(new GrammarBuilder("rudder zero"));
 
         Choices allChoices = new Choices(commands.ToArray());
         GrammarBuilder finalCommand = new GrammarBuilder(allChoices);
@@ -76,6 +77,9 @@ class Voice
 
         // sr.SpeechRecognized += new EventHandler(sr_SpeechRecognized);
         sr.SpeechRecognized += sr_SpeechRecognized;
+
+        sr.SetInputToDefaultAudioDevice();
+        sr.RecognizeAsync(RecognizeMode.Multiple);
     }
 
     void sr_SpeechRecognized(object? sender, SpeechRecognizedEventArgs e)

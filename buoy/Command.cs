@@ -7,12 +7,13 @@ enum CommandType
     Speed = 3,
     Rudder = 4,
     DivePlanes = 5,
+    DropNoiseMaker = 6,
 }
 
 struct Command
 {
     public CommandType type;
-    public byte[] rawData;
+    public byte[] rawData = new byte[0];
 
     public byte[] GetDataToSend()
     {
@@ -142,6 +143,16 @@ class CommandParser
     {
         angle = 0;
 
+        if (text.Equals("rudder 0"))
+        {
+            return true;
+        }
+
+        if (text.Equals("rudder zero"))
+        {
+            return true;
+        }
+
         if (Match("full left rudder", text, out text))
         {
             angle = -30;
@@ -171,6 +182,9 @@ class CommandParser
             if (!Number(text, out turnRate, out text))
                 return false;
 
+            if (turnRate > 30)
+                turnRate = 30;
+
             if (left)
                 turnRate = -turnRate;
 
@@ -184,6 +198,18 @@ class CommandParser
 
     public static bool ParseDivePlaneCommand(string text, out int angle)
     {
+        if (text.Equals("dive planes 0"))
+        {
+            angle = 0;
+            return true;
+        }
+
+        if (text.Equals("dive planes zero"))
+        {
+            angle = 0;
+            return true;
+        }
+
         if (!Number(text, out angle, out text))
             return false;
 
@@ -212,6 +238,17 @@ class CommandParser
             return false;
 
         return true;
+    }
+
+    public static bool ParseDropNoiseMaker(string text)
+    {
+        if (text.StartsWith("drop noise maker"))
+            return true;
+
+        if (text.StartsWith("drop noisemaker"))
+            return true;
+
+        return false;
     }
 
     public static Command ParseCommand(string text)
@@ -262,6 +299,14 @@ class CommandParser
             {
                 type = CommandType.DivePlanes,
                 rawData = BitConverter.GetBytes(divePlaneAngle),
+            };
+        }
+
+        if (ParseDropNoiseMaker(text))
+        {
+            return new Command()
+            {
+                type = CommandType.DropNoiseMaker
             };
         }
 
