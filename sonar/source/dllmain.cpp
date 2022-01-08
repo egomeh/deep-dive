@@ -193,7 +193,7 @@ void Entry()
 
         if (command_type == 2) // make depth [number] feet
         {
-            float depth = (float)*((int*)data_from_buoy.data());
+            float depth = *((float*)data_from_buoy.data());
             set_fixed_depth_parameter = depth;
             make_set_fixed_depth_call = true;
         }
@@ -244,8 +244,7 @@ void Entry()
             if (angle > 30)
                 angle = 30;
 
-            float value_to_write_to_memory = (float)angle;
-            value_to_write_to_memory = value_to_write_to_memory * .1f;
+            float value_to_write_to_memory = angle * .1f;
             __asm
             {
                 mov eax, helm_manager
