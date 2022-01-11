@@ -32,7 +32,7 @@ bool make_drop_noise_maker_call = false;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
-    // Do the original work from the hook point
+    // save state and do original work from hooked code
     __asm
     {
         pushad
@@ -97,13 +97,17 @@ __declspec(naked) void helm_manager_fixed_update_hook()
     {
         __asm
         {
+            // get the player functions object for the `this` pointer
             mov eax, helm_manager
-            add eax, 0xC            // player functions address
+            add eax, 0xC                    // player functions offset
+            mov eax, [eax]                  // player functions address
 
             push eax
             call drop_noise_maker_address
             add esp, 0x4
         }
+
+        make_drop_noise_maker_call = false;
     }
 
     // TIL: naked functions don't have a ret instruction
@@ -193,7 +197,7 @@ void Entry()
 
         if (command_type == 2) // make depth [number] feet
         {
-            float depth = *((float*)data_from_buoy.data());
+            float depth = (float)*((int*)data_from_buoy.data());
             set_fixed_depth_parameter = depth;
             make_set_fixed_depth_call = true;
         }
@@ -217,8 +221,7 @@ void Entry()
             if (angle > 30)
                 angle = 30;
 
-            float value_to_write_to_memory = (float)angle;
-            value_to_write_to_memory = value_to_write_to_memory * .1f;
+            float value_to_write_to_memory = (float)angle * .1f;
             __asm
             {
                 mov eax, helm_manager
