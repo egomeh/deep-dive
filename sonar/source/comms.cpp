@@ -87,6 +87,8 @@ bool connect_to_buoy()
         return false;
 
     client_socket = connect_socket;
+
+    return true;
 }
 
 bool read_from_buoy(std::vector<uint8_t>& data)

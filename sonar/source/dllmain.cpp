@@ -13,22 +13,18 @@
 #include "utilities.h"
 #include "memory.h"
 #include "comms.h"
+#include "hook.h"
 
 HMODULE self;
 
 uint32_t return_address;
-uint32_t helm_manager = 0;
 
 uint32_t set_fixed_depth_address;
-bool make_set_fixed_depth_call = false;
-float set_fixed_depth_parameter = 0.f;
-
 uint32_t set_direct_telegraph_address;
-bool make_set_direct_telegraph_call = false;
-int set_direct_telegraph_parameter = 0;
-
 uint32_t drop_noise_maker_address;
-bool make_drop_noise_maker_call = false;
+
+// I really want to find a better still reliable way.
+int32_t snooped_ebp;
 
 __declspec(naked) void helm_manager_fixed_update_hook()
 {
@@ -39,76 +35,9 @@ __declspec(naked) void helm_manager_fixed_update_hook()
         mov dword ptr[ebp - 0x80], 0
     }
 
-    // Get the helm manager address
-    __asm
-    {
-        lea eax, helm_manager
-        mov ecx, [ebp + 0x8]
-        mov [eax], ecx
-    }
-
-    if (make_set_fixed_depth_call)
-    {
-        // Make the call to SetFixedDepth
-        __asm
-        {
-            // prepare fixed depth call
-
-            // push depth parameter
-            lea eax, set_fixed_depth_parameter
-            push [eax]
-
-            // push helm manager
-            mov eax, helm_manager
-            push eax
-
-            // call
-            call set_fixed_depth_address
-            add esp, 0x8
-        };
-
-        make_set_fixed_depth_call = false;
-    }
-
-    if (make_set_direct_telegraph_call)
-    {
-        // Make the call to SetDirectTelegraph
-        __asm
-        {
-            // prepare fixed depth call
-
-            // push depth parameter
-            lea eax, set_direct_telegraph_parameter
-            push[eax]
-
-            // push helm manager
-            mov eax, helm_manager
-            push eax
-
-            // call
-            call set_direct_telegraph_address
-            add esp, 0x8
-        };
-
-        make_set_direct_telegraph_call = false;
-    }
-
-    if (make_drop_noise_maker_call)
-    {
-        __asm
-        {
-            // get the player functions object for the `this` pointer
-            mov eax, helm_manager
-            add eax, 0xC                    // player functions offset
-            mov eax, [eax]                  // player functions address
-
-            push eax
-            call drop_noise_maker_address
-            add esp, 0x4
-        }
-
-        make_drop_noise_maker_call = false;
-    }
+    __asm mov snooped_ebp, ebp;
+    HookManager::Get().SetEbp(snooped_ebp);
+    HookManager::Get().ServiceHook(HookedFunction::HelmManagerFixedUpdate);
 
     // TIL: naked functions don't have a ret instruction
     __asm
@@ -198,20 +127,44 @@ void Entry()
         if (command_type == 2) // make depth [number] feet
         {
             float depth = (float)*((int*)data_from_buoy.data());
-            set_fixed_depth_parameter = depth;
-            make_set_fixed_depth_call = true;
+
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                void* helm_manager = (void*)*(int*)(hook_data.ebp + 0x8);
+                ((void(*)(void*, float))set_fixed_depth_address)(helm_manager, depth);
+            });
+
+            //set_fixed_depth_parameter = depth;
+            //make_set_fixed_depth_call = true;
         }
 
         if (command_type == 3) // [setting] ahead / speed command
         {
             int speed = *(int*)data_from_buoy.data();
-            set_direct_telegraph_parameter = speed;
-            make_set_direct_telegraph_call = true;
+
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                void* helm_manager = (void*)*(int*)(hook_data.ebp + 0x8);
+                ((void(*)(void*, int))set_direct_telegraph_address)(helm_manager, speed);
+            });
+
+            // set_direct_telegraph_parameter = speed;
+            // make_set_direct_telegraph_call = true;
         }
 
         if (command_type == 4) // Rudder
         {
             int angle = *(int*)data_from_buoy.data();
+
+            uint32_t helm_manager = 0;
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                helm_manager = (uint32_t)*(int*)(hook_data.ebp + 0x8);
+            });
+
             if (helm_manager == 0)
                 continue;
 
@@ -238,8 +191,13 @@ void Entry()
         if (command_type == 5) // Dive planes
         {
             int angle = *(int*)data_from_buoy.data();
-            if (helm_manager == 0)
-                continue;
+            
+            uint32_t helm_manager = 0;
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                helm_manager = (uint32_t) * (int*)(hook_data.ebp + 0x8);
+            });
 
             if (angle < -30)
                 angle = -30;
@@ -263,7 +221,13 @@ void Entry()
 
         if (command_type == 6) // Drop noise maker
         {
-            make_drop_noise_maker_call = true;
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
+                void* player_functions = (void*)*(int*)(helm_manager + 0xC);
+                ((void(*)(void*))drop_noise_maker_address)(player_functions);
+            });
         }
     }
 

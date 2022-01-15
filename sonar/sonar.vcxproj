@@ -89,8 +89,10 @@
     <ClCompile Include="source/memory.cpp" />
     <ClInclude Include="source/comms.h" />
     <ClCompile Include="source/comms.cpp" />
+    <ClInclude Include="source/hook.h" />
+    <ClCompile Include="source/hook.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-    <ImportGroup Label="ExtensionTargets">
+  <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
