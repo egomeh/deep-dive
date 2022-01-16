@@ -19,10 +19,6 @@ HMODULE self;
 
 uint32_t return_address;
 
-uint32_t set_fixed_depth_address;
-uint32_t set_direct_telegraph_address;
-uint32_t drop_noise_maker_address;
-
 // I really want to find a better still reliable way.
 int32_t snooped_ebp;
 
@@ -77,14 +73,28 @@ void Entry()
     if (!helm_manager_set_fixed_depth)
         return;
 
-    set_fixed_depth_address = (uint32_t)helm_manager_set_fixed_depth;
+    uint32_t set_fixed_depth_address = (uint32_t)helm_manager_set_fixed_depth;
 
     void* helm_manager_set_direct_telegraph = FindCodeAddress(helm_manager_class, "SetDirectTelegraph");
 
     if (!helm_manager_set_direct_telegraph)
         return;
 
-    set_direct_telegraph_address = (uint32_t)helm_manager_set_direct_telegraph;
+    uint32_t set_direct_telegraph_address = (uint32_t)helm_manager_set_direct_telegraph;
+
+    void* helm_manager_cancel_auto_diving = FindCodeAddress(helm_manager_class, "CancelAutoDiving");
+
+    if (!helm_manager_cancel_auto_diving)
+        return;
+
+    uint32_t cancel_auto_diving_address = (uint32_t)helm_manager_cancel_auto_diving;
+
+    void* helm_manager_cancel_auto_turning = FindCodeAddress(helm_manager_class, "CancelAutoTurning");
+
+    if (!helm_manager_cancel_auto_turning)
+        return;
+
+    uint32_t cancel_auto_turning_address = (uint32_t)helm_manager_cancel_auto_turning;
 
     void* helm_manager_fixed_update = FindCodeAddress(helm_manager_class, "FixedUpdate");
 
@@ -113,7 +123,7 @@ void Entry()
     if (!player_functions_drop_noise_maker)
         return;
 
-    drop_noise_maker_address = (uint32_t)player_functions_drop_noise_maker;
+    uint32_t drop_noise_maker_address = (uint32_t)player_functions_drop_noise_maker;
 
     std::vector<uint8_t> data_from_buoy;
     while (read_from_buoy(data_from_buoy))
@@ -163,6 +173,7 @@ void Entry()
             [&](const HookData& hook_data)
             {
                 helm_manager = (uint32_t)*(int*)(hook_data.ebp + 0x8);
+                ((void(*)(uint32_t))cancel_auto_turning_address)(helm_manager);
             });
 
             if (helm_manager == 0)
@@ -197,6 +208,7 @@ void Entry()
             [&](const HookData& hook_data)
             {
                 helm_manager = (uint32_t) * (int*)(hook_data.ebp + 0x8);
+                ((void(*)(uint32_t))cancel_auto_diving_address)(helm_manager);
             });
 
             if (angle < -30)
@@ -228,6 +240,28 @@ void Entry()
                 void* player_functions = (void*)*(int*)(helm_manager + 0xC);
                 ((void(*)(void*))drop_noise_maker_address)(player_functions);
             });
+        }
+
+        if (command_type == 7) // Set course
+        {
+            uint32_t helm_manager = 0;
+
+            float bearing = (float)*((uint32_t*)data_from_buoy.data());
+
+            if (bearing > 360.f)
+                bearing = 360.f;
+
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                helm_manager = *(uint32_t*)(hook_data.ebp + 0x8);
+            });
+
+            unsigned char* auto_turning = (unsigned char*)(helm_manager + 0x5D);
+            float* wanted_course = (float*)(helm_manager + 0x70);
+
+            *auto_turning = 1;
+            *wanted_course = bearing;
         }
     }
 

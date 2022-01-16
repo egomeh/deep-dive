@@ -64,6 +64,12 @@ class Voice
         divePlaneBuilder.Append("angle");
         commands.Add(divePlaneBuilder);
 
+        // set course
+        GrammarBuilder setCourseBuilder = new GrammarBuilder();
+        setCourseBuilder.Append("set course bearing");
+        setCourseBuilder.Append(zeroToThousand);
+        commands.Add(setCourseBuilder);
+
         commands.Add(new GrammarBuilder("steady"));
         commands.Add(new GrammarBuilder("drop noise maker"));
         commands.Add(new GrammarBuilder("exit"));

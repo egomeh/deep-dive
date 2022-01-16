@@ -8,6 +8,7 @@ enum CommandType
     Rudder = 4,
     DivePlanes = 5,
     DropNoiseMaker = 6,
+    SetCourse = 7,
 }
 
 struct Command
@@ -251,6 +252,21 @@ class CommandParser
         return false;
     }
 
+    public static bool ParseSetCourseCommand(string text, out int bearing)
+    {
+        bearing = 0;
+
+        if (!Match("set course bearing", text, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Number(text, out bearing, out text))
+            return false;
+
+        return true;
+    }
+
     public static Command ParseCommand(string text)
     {
         if (ParseExitCommand(text))
@@ -307,6 +323,16 @@ class CommandParser
             return new Command()
             {
                 type = CommandType.DropNoiseMaker
+            };
+        }
+
+        int courseBearing;
+        if (ParseSetCourseCommand(text, out courseBearing))
+        {
+            return new Command()
+            {
+                type = CommandType.SetCourse,
+                rawData = BitConverter.GetBytes(courseBearing),
             };
         }
 
