@@ -9,6 +9,7 @@ enum CommandType
     DivePlanes = 5,
     DropNoiseMaker = 6,
     SetCourse = 7,
+    ShootTube = 8,
 }
 
 struct Command
@@ -267,6 +268,14 @@ class CommandParser
         return true;
     }
 
+    public static bool ParseShootCommand(string text)
+    {
+        if (!Match("shoot", text, out text))
+            return false;
+
+        return true;
+    }
+
     public static Command ParseCommand(string text)
     {
         if (ParseExitCommand(text))
@@ -333,6 +342,14 @@ class CommandParser
             {
                 type = CommandType.SetCourse,
                 rawData = BitConverter.GetBytes(courseBearing),
+            };
+        }
+
+        if (ParseShootCommand(text))
+        {
+            return new Command()
+            {
+                type = CommandType.ShootTube,
             };
         }
 

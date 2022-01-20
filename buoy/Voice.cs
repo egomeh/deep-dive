@@ -75,6 +75,8 @@ class Voice
         commands.Add(new GrammarBuilder("exit"));
         commands.Add(new GrammarBuilder("dive planes zero"));
         commands.Add(new GrammarBuilder("rudder zero"));
+        commands.Add(new GrammarBuilder("shoot"));
+        
 
         Choices allChoices = new Choices(commands.ToArray());
         GrammarBuilder finalCommand = new GrammarBuilder(allChoices);

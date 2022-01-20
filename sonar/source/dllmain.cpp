@@ -118,12 +118,27 @@ void Entry()
 
     void* player_functions_class = FindClassFromImage(image, "PlayerFunctions");
 
+    if (!player_functions_class)
+        return;
+
     void* player_functions_drop_noise_maker = FindCodeAddress(player_functions_class, "DropNoisemaker");
 
     if (!player_functions_drop_noise_maker)
         return;
 
     uint32_t drop_noise_maker_address = (uint32_t)player_functions_drop_noise_maker;
+
+    void* weapon_source_class = FindClassFromImage(image, "WeaponSource");
+
+    if (!weapon_source_class)
+        return;
+
+    void* weapon_source_fire_tube = FindCodeAddress(weapon_source_class, "FireTube");
+
+    if (!weapon_source_fire_tube)
+        return;
+
+    uint32_t weapon_source_fire_tube_address = (uint32_t)weapon_source_fire_tube;
 
     std::vector<uint8_t> data_from_buoy;
     while (read_from_buoy(data_from_buoy))
@@ -262,6 +277,20 @@ void Entry()
 
             *auto_turning = 1;
             *wanted_course = bearing;
+        }
+
+        if (command_type == 8) // Shoot
+        {
+            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData& hook_data)
+            {
+                int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
+                int player_functions = (int)*(int*)(helm_manager + 0xC);
+                int player_vessel = (int)*(int*)(player_functions + 0x24);
+                int vessel_movement = (int)*(int*)(player_vessel + 0x14);
+                void* weapon_source = (void*)*(int*)(vessel_movement + 0x10);
+                ((void(*)(void*))weapon_source_fire_tube_address)(weapon_source);
+            });
         }
     }
 
