@@ -51,11 +51,13 @@ class Injection
         // Get the address of LoadLibraryA
         IntPtr loadLibraryAddr = GetProcAddress(kernel32Handle, "LoadLibraryA");
 
-        IntPtr allocMemAddress = VirtualAllocEx(handle, IntPtr.Zero, (uint)((DLLPath.Length + 1) * Marshal.SizeOf(typeof(char))), 0x3000, 4);
+        uint pathLength = (uint)((DLLPath.Length + 1) * Marshal.SizeOf(typeof(char)));
+
+        IntPtr allocMemAddress = VirtualAllocEx(handle, IntPtr.Zero, pathLength, 0x3000, 4);
 
         // Writing the name of the dll there
         UIntPtr bytesWritten;
-        WriteProcessMemory(handle, allocMemAddress, Encoding.Default.GetBytes(DLLPath), (uint)((DLLPath.Length + 1) * Marshal.SizeOf(typeof(char))), out bytesWritten);
+        WriteProcessMemory(handle, allocMemAddress, Encoding.Default.GetBytes(DLLPath), pathLength, out bytesWritten);
 
         // Creating a thread that will call LoadLibraryA with allocMemAddress as argument
         IntPtr remoteThreadHandle = CreateRemoteThread(handle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);

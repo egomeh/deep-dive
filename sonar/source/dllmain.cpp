@@ -153,7 +153,7 @@ void Entry()
         {
             float depth = (float)*((int*)data_from_buoy.data());
 
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 void* helm_manager = (void*)*(int*)(hook_data.ebp + 0x8);
@@ -168,7 +168,7 @@ void Entry()
         {
             int speed = *(int*)data_from_buoy.data();
 
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 void* helm_manager = (void*)*(int*)(hook_data.ebp + 0x8);
@@ -184,7 +184,7 @@ void Entry()
             int angle = *(int*)data_from_buoy.data();
 
             uint32_t helm_manager = 0;
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 helm_manager = (uint32_t)*(int*)(hook_data.ebp + 0x8);
@@ -219,7 +219,7 @@ void Entry()
             int angle = *(int*)data_from_buoy.data();
             
             uint32_t helm_manager = 0;
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 helm_manager = (uint32_t) * (int*)(hook_data.ebp + 0x8);
@@ -248,7 +248,7 @@ void Entry()
 
         if (command_type == 6) // Drop noise maker
         {
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
@@ -266,7 +266,7 @@ void Entry()
             if (bearing > 360.f)
                 bearing = 360.f;
 
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 helm_manager = *(uint32_t*)(hook_data.ebp + 0x8);
@@ -281,7 +281,7 @@ void Entry()
 
         if (command_type == 8) // Shoot
         {
-            HookManager::Get().ExecuteInHook(HookedFunction::HelmManagerFixedUpdate,
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData& hook_data)
             {
                 int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);

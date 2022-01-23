@@ -15,6 +15,12 @@ struct HookData
 	uint32_t ebp;
 };
 
+struct HookExecutionRequest
+{
+	// Sync event used if the client caller wants to wait for the hook to finish
+	HANDLE sync_event;
+};
+
 class HookManager
 {
 public:
@@ -63,7 +69,7 @@ public:
 		SetEvent(hook_service_event);
 	}
 
-	bool ExecuteInHook(HookedFunction hook_to_execute, std::function<void(const HookData&)> function)
+	bool ExecuteInHookBase(HookedFunction hook_to_execute, std::function<void(const HookData&)> function, bool async)
 	{
 		EnterCriticalSection(&submit_function_for_hook_cs);
 
@@ -72,10 +78,21 @@ public:
 		code = function;
 		hook_request_in_flight = true;
 
-		WaitForSingleObject(hook_service_event, INFINITE);
+		if (!async)
+			WaitForSingleObject(hook_service_event, INFINITE);
 
 		LeaveCriticalSection(&submit_function_for_hook_cs);
 		return true;
+	}
+
+	bool ExecuteInHookSync(HookedFunction hook_to_execute, std::function<void(const HookData&)> function)
+	{
+		return ExecuteInHookBase(hook_to_execute, function, false);
+	}
+
+	bool ExecuteInHookAsync(HookedFunction hook_to_execute, std::function<void(const HookData&)> function)
+	{
+		return ExecuteInHookBase(hook_to_execute, function, true);
 	}
 
 	int ebp;
