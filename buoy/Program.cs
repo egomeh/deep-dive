@@ -27,9 +27,9 @@ class Buoy
         bool quit = false;
         while (!quit)
         {
-            // string? commandText = null;
-            // voice.commandQueue.TryDequeue(out commandText);
-            string? commandText = Console.ReadLine();
+            string? commandText = null;
+            voice.commandQueue.TryDequeue(out commandText);
+            // string? commandText = Console.ReadLine();
 
             if (!string.IsNullOrEmpty(commandText))
                 Console.WriteLine(String.Format("Voice command: {0}", commandText));

@@ -268,9 +268,30 @@ class CommandParser
         return true;
     }
 
-    public static bool ParseShootCommand(string text)
+    public static bool ParseShootCommand(string text, out int bearing, out int distance)
     {
-        if (!Match("shoot", text, out text))
+        bearing = 0;
+        distance = 0;
+
+        if (!Match("fire solution bearing", text, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Number(text, out bearing, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Match("activeate at", text, out text))
+            return false;
+
+        if (!Number(text, out distance, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Match("activeate at", text, out text))
             return false;
 
         return true;
@@ -345,11 +366,17 @@ class CommandParser
             };
         }
 
-        if (ParseShootCommand(text))
+        int shootBearing;
+        int shootDistance;
+        if (ParseShootCommand(text, out shootBearing, out shootDistance))
         {
+            byte[] bearingRawData = BitConverter.GetBytes(shootBearing);
+            byte[] distanceRawData = BitConverter.GetBytes(shootDistance);
+
             return new Command()
             {
                 type = CommandType.ShootTube,
+                rawData = bearingRawData.Concat(distanceRawData).ToArray(),
             };
         }
 
