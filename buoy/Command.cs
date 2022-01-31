@@ -268,10 +268,14 @@ class CommandParser
         return true;
     }
 
-    public static bool ParseShootCommand(string text, out int bearing, out int distance)
+    public static bool ParseShootCommand(string text, out int bearing, out float distance, out int tube)
     {
         bearing = 0;
-        distance = 0;
+        distance = 0.0f;
+        tube = 0;
+
+        int n1 = 0;
+        int n2 = 0;
 
         if (!Match("fire solution bearing", text, out text))
             return false;
@@ -283,16 +287,41 @@ class CommandParser
 
         Whitespace(text, out text);
 
-        if (!Match("activeate at", text, out text))
-            return false;
-
-        if (!Number(text, out distance, out text))
+        if (!Match("distance", text, out text))
             return false;
 
         Whitespace(text, out text);
 
-        if (!Match("activeate at", text, out text))
+        if (!Number(text, out n1, out text))
             return false;
+
+        Whitespace(text, out text);
+
+        if (!Match("point", text, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Number(text, out n2, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Match("thousand yards", text, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Match("shoot tube", text, out text))
+            return false;
+
+        Whitespace(text, out text);
+
+        if (!Number(text, out tube, out text))
+            return false;
+
+        string distanceFLoatString = String.Format("{0}.{1}", n1, n2);
+        distance = (float.Parse(distanceFLoatString) * 100.0f) / 7.5f;
 
         return true;
     }
@@ -367,16 +396,18 @@ class CommandParser
         }
 
         int shootBearing;
-        int shootDistance;
-        if (ParseShootCommand(text, out shootBearing, out shootDistance))
+        float shootDistance;
+        int tube;
+        if (ParseShootCommand(text, out shootBearing, out shootDistance, out tube))
         {
             byte[] bearingRawData = BitConverter.GetBytes(shootBearing);
             byte[] distanceRawData = BitConverter.GetBytes(shootDistance);
+            byte[] tubeRawData = BitConverter.GetBytes(tube);
 
             return new Command()
             {
                 type = CommandType.ShootTube,
-                rawData = bearingRawData.Concat(distanceRawData).ToArray(),
+                rawData = bearingRawData.Concat(distanceRawData).Concat(tubeRawData).ToArray(),
             };
         }
 

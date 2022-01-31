@@ -10,6 +10,7 @@ enum class HookedFunction
 	Any,
 	HelmManagerFixedUpdate,
 	WeaponSourceSetWaypoint,
+	TranslateShipForward,
 };
 
 struct HookData

@@ -8,6 +8,7 @@
 #include <vector>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <cmath>
 
 #include "mono_interaction.h"
 #include "utilities.h"
@@ -19,6 +20,7 @@ HMODULE self;
 
 uint32_t return_address;
 uint32_t return_address2;
+uint32_t return_address3;
 
 // I really want to find a better still reliable way.
 int32_t snooped_ebp;
@@ -73,6 +75,31 @@ __declspec(naked) void weapon_source_set_waypoint_hook()
     {
         popad
         push return_address2
+        ret
+    };
+}
+
+__declspec(naked) void translate_ship_forward_hook()
+{
+    // save state and do original work from hooked code
+    __asm
+    {
+        pushad
+        fld dword ptr [ebp - 0x248]
+        fld dword ptr [edi - 0x168]
+    }
+
+    __asm mov snooped_ebp, ebp;
+    __asm mov snooped_eax, eax;
+    HookManager::Get().SetEbp(snooped_ebp);
+    HookManager::Get().SetEax(snooped_eax);
+    HookManager::Get().ServiceHook(HookedFunction::TranslateShipForward);
+
+    // TIL: naked functions don't have a ret instruction
+    __asm
+    {
+        popad
+        push return_address3
         ret
     };
 }
@@ -161,6 +188,13 @@ void Entry()
 
     uint32_t drop_noise_maker_address = (uint32_t)player_functions_drop_noise_maker;
 
+    void* player_functions_click_on_tube = FindCodeAddress(player_functions_class, "ClickOnTube");
+
+    if (!player_functions_click_on_tube)
+        return;
+
+    uint32_t click_on_tube_address = (uint32_t)player_functions_click_on_tube;
+
     void* weapon_source_class = FindClassFromImage(image, "WeaponSource");
 
     if (!weapon_source_class)
@@ -204,6 +238,39 @@ void Entry()
         }
     );
     weapon_source_set_waypoint_data_replacement.Emplace(set_weapon_waypoint_hook_point);
+
+    void* vessel_movement_class = FindClassFromImage(image, "VesselMovement");
+
+    if (!vessel_movement_class)
+        return;
+
+    void* vessel_movement_translate_forward = FindCodeAddress(vessel_movement_class, "TranslateShipForward");
+
+    if (!vessel_movement_translate_forward)
+        return;
+
+    uint32_t vessel_movement_translate_forward_address = (uint32_t)vessel_movement_translate_forward;
+
+    void* vessel_movement_translate_hook_point = (void*)(vessel_movement_translate_forward_address + 0x1ba);
+    return_address3 = (uint32_t)vessel_movement_translate_hook_point + 7;
+    uint32_t target_address3 = (uint32_t)&translate_ship_forward_hook;
+
+    MemoryReplacement vessel_movement_replacement;
+    vessel_movement_replacement.SetMemory(
+        {
+            0x68,                                       // push 4-byte imm
+            FOUR_BYTES(target_address3),                // target address
+            0xc3,                                       // ret
+            0x90,                                       // nop
+            0x90,                                       // nop
+            0x90,                                       // nop
+            0x90,                                       // nop
+            0x90,                                       // nop
+            0x90,                                       // nop
+        }
+    );
+    vessel_movement_replacement.Emplace(vessel_movement_translate_hook_point);
+
 
     std::vector<uint8_t> data_from_buoy;
     while (read_from_buoy(data_from_buoy))
@@ -353,81 +420,69 @@ void Entry()
         if (command_type == 8) // Shoot
         {
             int bearing = *(int*)data_from_buoy.data();
-            int distance = *((int*)data_from_buoy.data() + 1);
+            float distance = *((float*)data_from_buoy.data() + 1);
+            int tube = *((int*)data_from_buoy.data() + 2);
+            --tube; // Tubes are zero-indexed
+
+            int helm_manager = 0;
+            int player_functions = 0;
+            int player_vessel = 0;
+            int vessel_movement = 0;
+            int weapon_source = 0;
+
+            // Get all the `this` pointers
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData hook_data)
+            {
+                helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
+                player_functions = (int)*(int*)(helm_manager + 0xC);
+                player_vessel = (int)*(int*)(player_functions + 0x24);
+                vessel_movement = (int)*(int*)(player_vessel + 0x14);
+                weapon_source = (int)*(int*)(vessel_movement + 0x10);
+                return true;
+            });
+
+            float ship_x = 0.0f;
+            float ship_y = 0.0f;
+
+            HookManager::Get().ExecuteInHookSync(HookedFunction::TranslateShipForward,
+            [&](const HookData hook_data)
+            {
+                int current_this = (int)*(int*)(hook_data.ebp + 0x8);
+
+                // Keep going until we get the movement we want
+                if (current_this != vessel_movement)
+                    return false;
+
+                ship_x = *(float*)(hook_data.eax);
+                ship_y = *(float*)(hook_data.eax + 0x8);
+
+                return true;
+            });
 
             HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData hook_data)
             {
+                ((void(*)(void*, int))player_functions_click_on_tube)((void*)player_functions, tube);
+
                 HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
                 [&](const HookData hook_data)
                 {
                     float* x = (float*)(hook_data.eax);
                     float* y = (float*)(hook_data.eax + 8);
 
-                    *x = 0;
-                    *y = 0;
+                    constexpr float pi = 3.14159265358979323846f;
+                    float rotation = -((float)bearing / 360.0f) * 2.0f * pi;
+
+                    *x = ship_x - std::sin(rotation) * distance;
+                    *y = ship_y + std::cos(rotation) * distance;
 
                     return true;
                 });
 
-                int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
-                int player_functions = (int)*(int*)(helm_manager + 0xC);
-                int player_vessel = (int)*(int*)(player_functions + 0x24);
-                int vessel_movement = (int)*(int*)(player_vessel + 0x14);
-                void* weapon_source = (void*)*(int*)(vessel_movement + 0x10);
-                ((void(*)(void*))weapon_source_fire_tube_address)(weapon_source);
+                ((void(*)(void*))weapon_source_fire_tube_address)((void*)weapon_source);
                 return true;
             });
-        }
-
-        if (command_type == 9) // Shoot
-        {
-            HANDLE sync_event_game = CreateEventA(NULL, FALSE, FALSE, "shoot_sync_event_game");
-            HANDLE sync_event_sonar = CreateEventA(NULL, FALSE, FALSE, "shoot_sync_event_sonar");
-            
-            // If we could not make an event for this, we have to bail.
-            if (!sync_event_game)
-                continue;
-
-            if (!sync_event_sonar)
-            {
-                CloseHandle(sync_event_game);
-                continue;
-            }
-
-            HookManager::Get().ExecuteInHookAsync(HookedFunction::HelmManagerFixedUpdate,
-            [&](const HookData hook_data)
-            {
-                SetEvent(sync_event_sonar);
-                WaitForSingleObject(sync_event_game, INFINITE);
-
-                int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
-                int player_functions = (int)*(int*)(helm_manager + 0xC);
-                int player_vessel = (int)*(int*)(player_functions + 0x24);
-                int vessel_movement = (int)*(int*)(player_vessel + 0x14);
-                void* weapon_source = (void*)*(int*)(vessel_movement + 0x10);
-                ((void(*)(void*))weapon_source_fire_tube_address)(weapon_source);
-                return true;
-            });
-
-            WaitForSingleObject(sync_event_sonar, INFINITE);
-
-            HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
-            [&](const HookData hook_data)
-            {
-
-                float* x = (float*)(hook_data.eax);
-                float* y = (float*)(hook_data.eax + 8);
-
-                SetEvent(sync_event_sonar);
-                return true;
-            });
-
-            SetEvent(sync_event_game);
-            WaitForSingleObject(sync_event_sonar, INFINITE);
-
-            CloseHandle(sync_event_game);
-            CloseHandle(sync_event_sonar);
         }
     }
 

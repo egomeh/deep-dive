@@ -64,6 +64,18 @@ class Voice
         divePlaneBuilder.Append("angle");
         commands.Add(divePlaneBuilder);
 
+        // shoot
+        GrammarBuilder shootBuilder = new GrammarBuilder();
+        shootBuilder.Append("fire solution bearing");
+        shootBuilder.Append(zeroToThousand);
+        shootBuilder.Append("distance");
+        shootBuilder.Append(zeroToThousand);
+        shootBuilder.Append("point");
+        shootBuilder.Append(zeroToThousand);
+        shootBuilder.Append("thousand yards shoot tube");
+        shootBuilder.Append(zeroToThousand);
+        commands.Add(shootBuilder);
+
         // set course
         GrammarBuilder setCourseBuilder = new GrammarBuilder();
         setCourseBuilder.Append("set course bearing");
@@ -75,7 +87,6 @@ class Voice
         commands.Add(new GrammarBuilder("exit"));
         commands.Add(new GrammarBuilder("dive planes zero"));
         commands.Add(new GrammarBuilder("rudder zero"));
-        commands.Add(new GrammarBuilder("shoot"));
         
 
         Choices allChoices = new Choices(commands.ToArray());
