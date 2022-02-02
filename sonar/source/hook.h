@@ -24,7 +24,7 @@ struct HookExecutionRequest
 	// Sync event used if the client caller wants to wait for the hook to finish
 	HANDLE sync_event = NULL;
 	HookedFunction hook;
-	std::function<bool(const HookData)> function;
+	std::function<bool(const HookData)> function = {};
 };
 
 class HookManager

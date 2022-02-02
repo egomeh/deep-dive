@@ -23,6 +23,8 @@ static void* (*mono_class_get_methods)          (void*, void**);
 static char* (*mono_method_get_name)            (void*);
 static void* (*mono_compile_method)             (void*);
 
+static std::map<std::string, std::map<std::string, std::map<std::string, void*>>> function_map;
+
 bool InitMonoInteraction()
 {
     hMono = GetModuleHandleA("mono.dll");
@@ -149,4 +151,36 @@ void* FindCodeAddress(void* mono_class, const char* name)
         return nullptr;
 
     return mono_compile_method(method);
+}
+
+
+void RegiterFunction(std::string assembly, std::string mono_class_name, std::string function_name)
+{
+    void* image = FindMonoImage(assembly.c_str());
+    void* mono_class = FindClassFromImage(image, mono_class_name.c_str());
+    void* function = FindCodeAddress(mono_class, function_name.c_str());
+
+    if (function_map.find(assembly) == function_map.end())
+    {
+        function_map[assembly] = std::map<std::string, std::map<std::string, void*>>();
+    }
+
+    auto& assembly_map = function_map[assembly];
+
+    if (assembly_map.find(mono_class_name) == assembly_map.end())
+    {
+        assembly_map[mono_class_name] = std::map<std::string, void*>();
+    }
+
+    auto& class_map = assembly_map[mono_class_name];
+
+    if (class_map.find(function_name) == class_map.end())
+    {
+        class_map[function_name] = function;
+    }
+}
+
+void* GetFunctionAddress(std::string assembly, std::string mono_class, std::string function_name)
+{
+    return function_map[assembly][mono_class][function_name];
 }

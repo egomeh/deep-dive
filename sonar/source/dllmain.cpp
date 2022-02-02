@@ -118,50 +118,21 @@ void Entry()
     if (!InitMonoInteraction())
         return;
 
-    void* image = FindMonoImage("Assembly-CSharp");
+    RegiterFunction("Assembly-CSharp", "HelmManager", "SetFixedDepth");
+    RegiterFunction("Assembly-CSharp", "HelmManager", "SetDirectTelegraph");
+    RegiterFunction("Assembly-CSharp", "HelmManager", "CancelAutoDiving");
+    RegiterFunction("Assembly-CSharp", "HelmManager", "CancelAutoTurning");
+    RegiterFunction("Assembly-CSharp", "HelmManager", "FixedUpdate");
     
-    if (!image)
-        return;
+    RegiterFunction("Assembly-CSharp", "PlayerFunctions", "DropNoisemaker");
+    RegiterFunction("Assembly-CSharp", "PlayerFunctions", "ClickOnTube");
 
-    void* helm_manager_class = FindClassFromImage(image, "HelmManager");
+    RegiterFunction("Assembly-CSharp", "WeaponSource", "FireTube");
+    RegiterFunction("Assembly-CSharp", "WeaponSource", "SetWeaponWaypointData");
 
-    if (!helm_manager_class)
-        return;
+    RegiterFunction("Assembly-CSharp", "VesselMovement", "TranslateShipForward");
 
-    void* helm_manager_set_fixed_depth = FindCodeAddress(helm_manager_class, "SetFixedDepth");
-
-    if (!helm_manager_set_fixed_depth)
-        return;
-
-    uint32_t set_fixed_depth_address = (uint32_t)helm_manager_set_fixed_depth;
-
-    void* helm_manager_set_direct_telegraph = FindCodeAddress(helm_manager_class, "SetDirectTelegraph");
-
-    if (!helm_manager_set_direct_telegraph)
-        return;
-
-    uint32_t set_direct_telegraph_address = (uint32_t)helm_manager_set_direct_telegraph;
-
-    void* helm_manager_cancel_auto_diving = FindCodeAddress(helm_manager_class, "CancelAutoDiving");
-
-    if (!helm_manager_cancel_auto_diving)
-        return;
-
-    uint32_t cancel_auto_diving_address = (uint32_t)helm_manager_cancel_auto_diving;
-
-    void* helm_manager_cancel_auto_turning = FindCodeAddress(helm_manager_class, "CancelAutoTurning");
-
-    if (!helm_manager_cancel_auto_turning)
-        return;
-
-    uint32_t cancel_auto_turning_address = (uint32_t)helm_manager_cancel_auto_turning;
-
-    void* helm_manager_fixed_update = FindCodeAddress(helm_manager_class, "FixedUpdate");
-
-    if (!helm_manager_fixed_update)
-        return;
-
-    void* fixed_update_hook_point = (void*)((size_t)helm_manager_fixed_update + 0x43);
+    void* fixed_update_hook_point = (void*)((size_t)GetFunctionAddress("Assembly-CSharp", "HelmManager", "FixedUpdate") +0x43);
     return_address = (uint32_t)fixed_update_hook_point + 7;
     uint32_t target_address = (uint32_t)&helm_manager_fixed_update_hook;
 
@@ -176,45 +147,7 @@ void Entry()
     );
     helm_manager_fixed_update_replacement.Emplace(fixed_update_hook_point);
 
-    void* player_functions_class = FindClassFromImage(image, "PlayerFunctions");
-
-    if (!player_functions_class)
-        return;
-
-    void* player_functions_drop_noise_maker = FindCodeAddress(player_functions_class, "DropNoisemaker");
-
-    if (!player_functions_drop_noise_maker)
-        return;
-
-    uint32_t drop_noise_maker_address = (uint32_t)player_functions_drop_noise_maker;
-
-    void* player_functions_click_on_tube = FindCodeAddress(player_functions_class, "ClickOnTube");
-
-    if (!player_functions_click_on_tube)
-        return;
-
-    uint32_t click_on_tube_address = (uint32_t)player_functions_click_on_tube;
-
-    void* weapon_source_class = FindClassFromImage(image, "WeaponSource");
-
-    if (!weapon_source_class)
-        return;
-
-    void* weapon_source_fire_tube = FindCodeAddress(weapon_source_class, "FireTube");
-
-    if (!weapon_source_fire_tube)
-        return;
-
-    uint32_t weapon_source_fire_tube_address = (uint32_t)weapon_source_fire_tube;
-
-    void* weapon_source_set_weapon_waypoint_data = FindCodeAddress(weapon_source_class, "SetWeaponWaypointData");
-
-    if (!weapon_source_set_weapon_waypoint_data)
-        return;
-
-    uint32_t weapon_source_set_weapon_waypoint_data_address = (uint32_t)weapon_source_set_weapon_waypoint_data;
-
-    void* set_weapon_waypoint_hook_point = (void*)(weapon_source_set_weapon_waypoint_data_address + 0x173);
+    void* set_weapon_waypoint_hook_point = (void*)((int)GetFunctionAddress("Assembly-CSharp", "WeaponSource", "SetWeaponWaypointData") + 0x173);
     return_address2 = (uint32_t)set_weapon_waypoint_hook_point + 7;
     uint32_t target_address2 = (uint32_t)&weapon_source_set_waypoint_hook;
 
@@ -239,17 +172,7 @@ void Entry()
     );
     weapon_source_set_waypoint_data_replacement.Emplace(set_weapon_waypoint_hook_point);
 
-    void* vessel_movement_class = FindClassFromImage(image, "VesselMovement");
-
-    if (!vessel_movement_class)
-        return;
-
-    void* vessel_movement_translate_forward = FindCodeAddress(vessel_movement_class, "TranslateShipForward");
-
-    if (!vessel_movement_translate_forward)
-        return;
-
-    uint32_t vessel_movement_translate_forward_address = (uint32_t)vessel_movement_translate_forward;
+    uint32_t vessel_movement_translate_forward_address = (uint32_t)GetFunctionAddress("Assembly-CSharp", "VesselMovement", "TranslateShipForward");
 
     void* vessel_movement_translate_hook_point = (void*)(vessel_movement_translate_forward_address + 0x1ba);
     return_address3 = (uint32_t)vessel_movement_translate_hook_point + 7;
@@ -271,7 +194,6 @@ void Entry()
     );
     vessel_movement_replacement.Emplace(vessel_movement_translate_hook_point);
 
-
     std::vector<uint8_t> data_from_buoy;
     while (read_from_buoy(data_from_buoy))
     {
@@ -289,7 +211,7 @@ void Entry()
             [&](const HookData hook_data)
             {
                 void* helm_manager = (void*)*(int*)(hook_data.ebp + 0x8);
-                ((void(*)(void*, float))set_fixed_depth_address)(helm_manager, depth);
+                ((void(*)(void*, float))GetFunctionAddress("Assembly-CSharp", "HelmManager", "SetFixedDepth"))(helm_manager, depth);
                 return true;
             });
 
@@ -305,7 +227,7 @@ void Entry()
             [&](const HookData hook_data)
             {
                 void* helm_manager = (void*)*(int*)(hook_data.ebp + 0x8);
-                ((void(*)(void*, int))set_direct_telegraph_address)(helm_manager, speed);
+                ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "HelmManager", "SetDirectTelegraph"))(helm_manager, speed);
                 return true;
             });
 
@@ -322,7 +244,7 @@ void Entry()
             [&](const HookData hook_data)
             {
                 helm_manager = (uint32_t)*(int*)(hook_data.ebp + 0x8);
-                ((void(*)(uint32_t))cancel_auto_turning_address)(helm_manager);
+                ((void(*)(uint32_t))GetFunctionAddress("Assembly-CSharp", "HelmManager", "CancelAutoTurning"))(helm_manager);
                 return true;
             });
 
@@ -358,7 +280,7 @@ void Entry()
             [&](const HookData hook_data)
             {
                 helm_manager = (uint32_t) * (int*)(hook_data.ebp + 0x8);
-                ((void(*)(uint32_t))cancel_auto_diving_address)(helm_manager);
+                ((void(*)(uint32_t))GetFunctionAddress("Assembly-CSharp", "HelmManager", "CancelAutoDiving"))(helm_manager);
                 return true;
             });
 
@@ -389,7 +311,7 @@ void Entry()
             {
                 int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
                 void* player_functions = (void*)*(int*)(helm_manager + 0xC);
-                ((void(*)(void*))drop_noise_maker_address)(player_functions);
+                ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "DropNoisemaker"))(player_functions);
                 return true;
             });
         }
@@ -463,7 +385,7 @@ void Entry()
             HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData hook_data)
             {
-                ((void(*)(void*, int))player_functions_click_on_tube)((void*)player_functions, tube);
+                ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ClickOnTube"))((void*)player_functions, tube);
 
                 HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
                 [&](const HookData hook_data)
@@ -480,7 +402,7 @@ void Entry()
                     return true;
                 });
 
-                ((void(*)(void*))weapon_source_fire_tube_address)((void*)weapon_source);
+                ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "WeaponSource", "FireTube"))((void*)weapon_source);
                 return true;
             });
         }
