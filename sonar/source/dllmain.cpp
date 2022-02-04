@@ -126,6 +126,8 @@ void Entry()
     
     RegiterFunction("Assembly-CSharp", "PlayerFunctions", "DropNoisemaker");
     RegiterFunction("Assembly-CSharp", "PlayerFunctions", "ClickOnTube");
+    RegiterFunction("Assembly-CSharp", "PlayerFunctions", "LevelSubmarine");
+    RegiterFunction("Assembly-CSharp", "PlayerFunctions", "ReloadTube");
 
     RegiterFunction("Assembly-CSharp", "WeaponSource", "FireTube");
     RegiterFunction("Assembly-CSharp", "WeaponSource", "SetWeaponWaypointData");
@@ -203,7 +205,9 @@ void Entry()
         int command_type = *((int*)data_from_buoy.data());
         data_from_buoy.erase(data_from_buoy.begin(), data_from_buoy.begin() + 4);
 
-        if (command_type == 2) // make depth [number] feet
+        switch (command_type)
+        {
+        case 2: // make depth [number] feet
         {
             float depth = (float)*((int*)data_from_buoy.data());
 
@@ -215,11 +219,9 @@ void Entry()
                 return true;
             });
 
-            //set_fixed_depth_parameter = depth;
-            //make_set_fixed_depth_call = true;
+            break;
         }
-
-        if (command_type == 3) // [setting] ahead / speed command
+        case 3: // [setting] ahead / speed command
         {
             int speed = *(int*)data_from_buoy.data();
 
@@ -231,11 +233,9 @@ void Entry()
                 return true;
             });
 
-            // set_direct_telegraph_parameter = speed;
-            // make_set_direct_telegraph_call = true;
+            break;
         }
-
-        if (command_type == 4) // Rudder
+        case 4: // Rudder
         {
             int angle = *(int*)data_from_buoy.data();
 
@@ -269,9 +269,10 @@ void Entry()
                 mov ecx, [ecx]
                 mov [eax], ecx
             }
-        }
 
-        if (command_type == 5) // Dive planes
+            break;
+        }
+        case 5: // Dive planes
         {
             int angle = *(int*)data_from_buoy.data();
             
@@ -302,9 +303,10 @@ void Entry()
                 mov ecx, [ecx]
                 mov[eax], ecx
             }
-        }
 
-        if (command_type == 6) // Drop noise maker
+            break;
+        }
+        case 6: // Drop noise maker
         {
             HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
             [&](const HookData hook_data)
@@ -314,9 +316,10 @@ void Entry()
                 ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "DropNoisemaker"))(player_functions);
                 return true;
             });
-        }
 
-        if (command_type == 7) // Set course
+            break;
+        }
+        case 7: // Set course
         {
             uint32_t helm_manager = 0;
 
@@ -337,9 +340,10 @@ void Entry()
 
             *auto_turning = 1;
             *wanted_course = bearing;
-        }
 
-        if (command_type == 8) // Shoot
+            break;
+        }
+        case 8: // Shoot
         {
             int bearing = *(int*)data_from_buoy.data();
             float distance = *((float*)data_from_buoy.data() + 1);
@@ -383,28 +387,44 @@ void Entry()
             });
 
             HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
-            [&](const HookData hook_data)
-            {
-                ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ClickOnTube"))((void*)player_functions, tube);
-
-                HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
                 [&](const HookData hook_data)
                 {
-                    float* x = (float*)(hook_data.eax);
-                    float* y = (float*)(hook_data.eax + 8);
+                    ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ClickOnTube"))((void*)player_functions, tube);
 
-                    constexpr float pi = 3.14159265358979323846f;
-                    float rotation = -((float)bearing / 360.0f) * 2.0f * pi;
+                    HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
+                    [&](const HookData hook_data)
+                    {
+                        float* x = (float*)(hook_data.eax);
+                        float* y = (float*)(hook_data.eax + 8);
 
-                    *x = ship_x - std::sin(rotation) * distance;
-                    *y = ship_y + std::cos(rotation) * distance;
+                        constexpr float pi = 3.14159265358979323846f;
+                        float rotation = -((float)bearing / 360.0f) * 2.0f * pi;
 
+                        *x = ship_x - std::sin(rotation) * distance;
+                        *y = ship_y + std::cos(rotation) * distance;
+
+                        return true;
+                    });
+
+                    ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "WeaponSource", "FireTube"))((void*)weapon_source);
                     return true;
                 });
 
-                ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "WeaponSource", "FireTube"))((void*)weapon_source);
+            break;
+        }
+        case 9: // Level the ship
+        {
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData hook_data)
+            {
+                int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
+                void* player_functions = (void*)*(int*)(helm_manager + 0xC);
+                ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "LevelSubmarine"))(player_functions);
                 return true;
             });
+
+            break;
+        }
         }
     }
 

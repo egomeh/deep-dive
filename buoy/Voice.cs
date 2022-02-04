@@ -84,10 +84,10 @@ class Voice
 
         commands.Add(new GrammarBuilder("steady"));
         commands.Add(new GrammarBuilder("drop noise maker"));
-        commands.Add(new GrammarBuilder("exit"));
         commands.Add(new GrammarBuilder("dive planes zero"));
         commands.Add(new GrammarBuilder("rudder zero"));
-        
+        commands.Add(new GrammarBuilder("level the ship"));
+
 
         Choices allChoices = new Choices(commands.ToArray());
         GrammarBuilder finalCommand = new GrammarBuilder(allChoices);

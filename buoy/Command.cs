@@ -10,6 +10,7 @@ enum CommandType
     DropNoiseMaker = 6,
     SetCourse = 7,
     ShootTube = 8,
+    LevelTheShip = 9,
 }
 
 struct Command
@@ -325,6 +326,10 @@ class CommandParser
 
         return true;
     }
+    public static bool ParseLevelTheShipCommand(string text)
+    {
+        return Match("level the ship", text, out text);
+    }
 
     public static Command ParseCommand(string text)
     {
@@ -392,6 +397,14 @@ class CommandParser
             {
                 type = CommandType.SetCourse,
                 rawData = BitConverter.GetBytes(courseBearing),
+            };
+        }
+
+        if (ParseLevelTheShipCommand(text))
+        {
+            return new Command()
+            {
+                type = CommandType.LevelTheShip,
             };
         }
 
