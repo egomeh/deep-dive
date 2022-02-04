@@ -82,6 +82,12 @@ class Voice
         setCourseBuilder.Append(zeroToThousand);
         commands.Add(setCourseBuilder);
 
+        // reload tube
+        GrammarBuilder reloadTubeBuilder = new GrammarBuilder();
+        reloadTubeBuilder.Append("reload tube");
+        reloadTubeBuilder.Append(zeroToThousand);
+        commands.Add(reloadTubeBuilder);
+
         commands.Add(new GrammarBuilder("steady"));
         commands.Add(new GrammarBuilder("drop noise maker"));
         commands.Add(new GrammarBuilder("dive planes zero"));

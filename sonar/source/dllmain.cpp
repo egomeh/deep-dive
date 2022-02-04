@@ -387,28 +387,28 @@ void Entry()
             });
 
             HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData hook_data)
+            {
+                ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ClickOnTube"))((void*)player_functions, tube);
+
+                HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
                 [&](const HookData hook_data)
                 {
-                    ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ClickOnTube"))((void*)player_functions, tube);
+                    float* x = (float*)(hook_data.eax);
+                    float* y = (float*)(hook_data.eax + 8);
 
-                    HookManager::Get().ExecuteInHookAsync(HookedFunction::WeaponSourceSetWaypoint,
-                    [&](const HookData hook_data)
-                    {
-                        float* x = (float*)(hook_data.eax);
-                        float* y = (float*)(hook_data.eax + 8);
+                    constexpr float pi = 3.14159265358979323846f;
+                    float rotation = -((float)bearing / 360.0f) * 2.0f * pi;
 
-                        constexpr float pi = 3.14159265358979323846f;
-                        float rotation = -((float)bearing / 360.0f) * 2.0f * pi;
+                    *x = ship_x - std::sin(rotation) * distance;
+                    *y = ship_y + std::cos(rotation) * distance;
 
-                        *x = ship_x - std::sin(rotation) * distance;
-                        *y = ship_y + std::cos(rotation) * distance;
-
-                        return true;
-                    });
-
-                    ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "WeaponSource", "FireTube"))((void*)weapon_source);
                     return true;
                 });
+
+                ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "WeaponSource", "FireTube"))((void*)weapon_source);
+                return true;
+            });
 
             break;
         }
@@ -420,6 +420,23 @@ void Entry()
                 int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
                 void* player_functions = (void*)*(int*)(helm_manager + 0xC);
                 ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "LevelSubmarine"))(player_functions);
+                return true;
+            });
+
+            break;
+        }
+        case 10: // Reload tube
+        {
+            int tube = *((int*)data_from_buoy.data() + 2);
+            --tube; // Tubes are zero-indexed
+
+            HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
+            [&](const HookData hook_data)
+            {
+                int helm_manager = (int)*(int*)(hook_data.ebp + 0x8);
+                void* player_functions = (void*)*(int*)(helm_manager + 0xC);
+                ((void(*)(void*, int))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ClickOnTube"))((void*)player_functions, tube);
+                ((void(*)(void*))GetFunctionAddress("Assembly-CSharp", "PlayerFunctions", "ReloadTube"))((void*)player_functions);
                 return true;
             });
 

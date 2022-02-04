@@ -11,6 +11,7 @@ enum CommandType
     SetCourse = 7,
     ShootTube = 8,
     LevelTheShip = 9,
+    ReloadTube = 10,
 }
 
 struct Command
@@ -331,6 +332,19 @@ class CommandParser
         return Match("level the ship", text, out text);
     }
 
+    public static bool ParseReloadTubeCommand(string text, out int tube)
+    {
+        tube = 0;
+
+        if (Match("reload tube", text, out text))
+            return false;
+
+        if (!Number(text, out tube, out text))
+            return false;
+
+        return true;
+    }
+
     public static Command ParseCommand(string text)
     {
         if (ParseExitCommand(text))
@@ -405,6 +419,16 @@ class CommandParser
             return new Command()
             {
                 type = CommandType.LevelTheShip,
+            };
+        }
+
+        int tubeToReload;
+        if (ParseReloadTubeCommand(text, out tubeToReload))
+        {
+            return new Command()
+            {
+                type = CommandType.ReloadTube,
+                rawData = BitConverter.GetBytes((int)tubeToReload),
             };
         }
 
