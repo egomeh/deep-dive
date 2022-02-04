@@ -134,6 +134,8 @@ void Entry()
 
     RegiterFunction("Assembly-CSharp", "VesselMovement", "TranslateShipForward");
 
+    RegiterFunction("UnityEngine", "Input", "GetKeyInt");
+
     void* fixed_update_hook_point = (void*)((size_t)GetFunctionAddress("Assembly-CSharp", "HelmManager", "FixedUpdate") +0x43);
     return_address = (uint32_t)fixed_update_hook_point + 7;
     uint32_t target_address = (uint32_t)&helm_manager_fixed_update_hook;
@@ -204,6 +206,21 @@ void Entry()
 
         int command_type = *((int*)data_from_buoy.data());
         data_from_buoy.erase(data_from_buoy.begin(), data_from_buoy.begin() + 4);
+
+        // Check if we actually press the `y`, otherwise ignore
+        bool should_process = false;
+        HookManager::Get().ExecuteInHookSync(HookedFunction::HelmManagerFixedUpdate,
+        [&](const HookData hook_data)
+        {
+            int key_code_y = 121;
+            int pressed = ((int(*)(int))GetFunctionAddress("UnityEngine", "Input", "GetKeyInt"))(key_code_y);
+            if (pressed > 0)
+                should_process = true;
+            return true;
+        });
+
+        if (!should_process)
+            continue;
 
         switch (command_type)
         {
