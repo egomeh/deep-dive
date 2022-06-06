@@ -19,6 +19,12 @@ struct Command
     public CommandType type;
     public byte[] rawData = new byte[0];
 
+    public Command()
+    {
+        type = CommandType.Invalid;
+        rawData= new byte[0];
+    }
+
     public byte[] GetDataToSend()
     {
         byte[] data = new byte[rawData.Length + 4];
