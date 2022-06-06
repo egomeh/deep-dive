@@ -1,6 +1,11 @@
-﻿using System.Speech.Recognition;
-using System.IO.Pipes;
-using System.Windows.Input;
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Sockets;
+using System.Net;
+using System.Runtime.Serialization;
+using System.Runtime.InteropServices;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 class Buoy
 {
@@ -12,13 +17,35 @@ class Buoy
 
     int Run()
     {
-        string sonarDLLPath = Path.GetFullPath(@"../../../../Debug/sonar.dll");
+        var assembly = Assembly.GetExecutingAssembly();
+        string temporaryPath = Path.GetTempPath();
+        string targetDllPath = Path.Combine(temporaryPath, "sonar.dll");
+
+        using (Stream? inStream = assembly.GetManifestResourceStream("buoy.sonar.dll"))
+        {
+            if (inStream == null)
+                return -1; // Probably handle this better but it should really not fail.
+
+            using (FileStream outStream = File.OpenWrite(targetDllPath))
+            {
+                BinaryReader reader = new BinaryReader(inStream);
+                BinaryWriter writer = new BinaryWriter(outStream);
+
+                byte[] buffer = new Byte[1024];
+                int bytesRead;
+
+                while ((bytesRead = inStream.Read(buffer, 0, 1024)) > 0)
+                {
+                    outStream.Write(buffer, 0, bytesRead);
+                }
+            }
+        }
+
+        Injection.InjectDLL("ColdWaters", Path.GetFullPath(targetDllPath));
 
         Comms comms = new Comms();
         comms.Initialize();
         comms.StartListen();
-
-        Injection.InjectDLL("ColdWaters", sonarDLLPath);
 
         comms.WaitForConnection(30000);
 

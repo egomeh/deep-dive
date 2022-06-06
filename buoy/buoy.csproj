@@ -21,11 +21,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\sonar.dll" />
+    <None Remove="sonar.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="sonar.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Speech" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\sonar\sonar.vcxproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\sonar.dll" />
   </ItemGroup>
 
   <ItemGroup>
